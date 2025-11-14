@@ -1,11 +1,3 @@
-## 👋 Hi, I'm **Roma**
-### **CS Student • Developer • AI & Tech Educator**  
-Building solutions for Africa through **code, automation, and innovation.**
-
-I'm a software developer with a strong interest in **AI, data analysis, full-stack JavaScript development, and tech education**.  
-I’m committed to creating tools, learning resources, and tech solutions that empower students and young people across Ghana and Africa.
-
----
 
 ## 🚀 **Tech Stack**
 
@@ -36,46 +28,9 @@ I’m committed to creating tools, learning resources, and tech solutions that e
 
 > ⚡ Currently improving my Git & GitBash skills (I mostly use the GUI, but leveling up fast!)
 
----
 
-## 📌 **Current Projects**
-### 🍔 **Food Ordering Web App (Node.js)**  
-A full-stack ordering system with menu pages, cart logic, backend API, and admin dashboard.
-
-### 🤖 **Tech Intro Initiative (AI & Coding Education)**  
-A community-driven tech education project teaching **AI, coding, and digital skills** across Africa.
-
-### 📈 **Data Analysis Projects**  
-Cleaning, analyzing, and visualizing datasets using SQL, Excel, Tableau, and Power BI.
-
-### 🔌 **API Development Projects — Coming Soon**  
-A series of backend APIs focusing on best practices, clean architecture, and documentation.
-
----
 
 ## 📊 **GitHub Stats**
 ![GitHub Stats](https://github-readme-stats.vercel.app/api?username=Takyi-Romanus&show_icons=true&theme=tokyonight)
 ![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=Takyi-Romanus&layout=compact&theme=tokyonight)
-
----
-
-## 🌍 **Tech Intro — Empowering the Next Generation**
-I run an initiative focused on teaching  
-**AI, coding, robotics, algorithms, and digital skills**  
-to students and young people across **Ghana and Africa**.
-
-I believe tech and innovation can create **generational wealth, opportunities, and global competitiveness**.
-
----
-
-## 📫 **Connect With Me**
-
-- 🐦 **Twitter/X:** https://x.com/TakyiRomanus  
-- 📘 **Facebook:** https://www.facebook.com/TakyiRomanus0
-- 📸 **Instagram:** https://www.instagram.com/takyi.romanus 
--   **LinkedIn** https://www.linkedin.com/in/takyi-romanus
-
-
-
----
 
