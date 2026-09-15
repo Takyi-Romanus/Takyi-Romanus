@@ -1,0 +1,12 @@
+To generate a secure NextAuth secret key incorporating "vigil summer" along with random special characters, you can use any of the following methods:
+
+Command Line (Recommended)
+
+Run this command in your terminal to generate a secure 32-byte hex key:
+
+Bash
+openssl rand -hex 32
+Alternatively, use the official NextAuth CLI command:
+
+Bash
+npx auth secret
