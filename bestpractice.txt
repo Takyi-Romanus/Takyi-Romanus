@@ -737,3 +737,3327 @@ And the resulting architecture is:
         └───────────┘
 
 
+# PostgreSQL Setup, Verification & Troubleshooting Playbook
+
+### Windows Development Environment
+
+**Purpose:**
+A reusable step-by-step guide for installing, configuring, verifying, connecting, and troubleshooting PostgreSQL for web development projects.
+
+**Typical Stack:**
+
+> Application → Backend/Framework → ORM → PostgreSQL
+
+Examples:
+
+* Node.js → Express → Prisma/Sequelize → PostgreSQL
+* Next.js → Prisma → PostgreSQL
+* Python → Django/FastAPI → PostgreSQL
+
+---
+
+# 1. Understand What You Are Installing
+
+Before installing PostgreSQL, understand the main components.
+
+### PostgreSQL Server
+
+The actual database server.
+
+It stores:
+
+* databases
+* tables
+* records
+* indexes
+* relationships
+* constraints
+
+### PostgreSQL Client Tools
+
+Command-line programs used to interact with PostgreSQL.
+
+Important tools include:
+
+| Tool         | Purpose                                            |
+| ------------ | -------------------------------------------------- |
+| `psql`       | PostgreSQL command-line client                     |
+| `pg_isready` | Checks whether PostgreSQL is accepting connections |
+| `pg_ctl`     | Controls/checks PostgreSQL server processes        |
+
+### PostgreSQL Database
+
+A database is a container inside the PostgreSQL server.
+
+For example:
+
+```text
+PostgreSQL Server
+│
+├── postgres
+├── template0
+├── template1
+└── akataslopsa
+```
+
+A web application normally connects to one specific database.
+
+---
+
+# 2. Download PostgreSQL
+
+Download PostgreSQL from the official PostgreSQL website:
+
+https://www.postgresql.org/download/windows/
+
+Choose the Windows installer provided through the official PostgreSQL/EDB distribution.
+
+Avoid downloading PostgreSQL installers from random third-party websites.
+
+---
+
+# 3. Install PostgreSQL
+
+Run the installer.
+
+The installation normally includes:
+
+* PostgreSQL Server
+* pgAdmin
+* Command Line Tools
+* Stack Builder
+
+For normal development, keep the command-line tools selected.
+
+During installation, you will be asked to configure:
+
+### Installation directory
+
+The default is usually:
+
+```
+C:\Program Files\PostgreSQL\<version>
+```
+
+For example:
+
+```
+C:\Program Files\PostgreSQL\18
+```
+
+### Port
+
+The default PostgreSQL port is:
+
+```
+5432
+```
+
+Unless another application is already using it, keep the default.
+
+### Database superuser
+
+The default administrative username is commonly:
+
+```
+postgres
+```
+
+### Password
+
+Create a strong password and store it securely.
+
+Do not put your PostgreSQL password directly into source code.
+
+---
+
+# 4. Understand the PostgreSQL Connection
+
+A PostgreSQL connection can be represented as:
+
+```
+postgresql://USERNAME:PASSWORD@HOST:PORT/DATABASE
+```
+
+Example structure:
+
+```
+postgresql://postgres:YOUR_PASSWORD@localhost:5432/my_database
+```
+
+For Prisma, we commonly add:
+
+```
+?schema=public
+```
+
+giving:
+
+```
+postgresql://postgres:YOUR_PASSWORD@localhost:5432/my_database?schema=public
+```
+
+Do not commit this URL to Git if it contains credentials.
+
+---
+
+# 5. Verify PostgreSQL Installation
+
+After installation, open a **new PowerShell window**.
+
+First check whether Windows can find `psql`:
+
+```powershell
+Get-Command psql -ErrorAction SilentlyContinue
+```
+
+Then:
+
+```powershell
+where.exe psql
+```
+
+A successful result may look like:
+
+```
+C:\Program Files\PostgreSQL\18\bin\psql.exe
+```
+
+Check the PostgreSQL installation directory:
+
+```powershell
+Get-ChildItem "C:\Program Files\PostgreSQL" -Directory
+```
+
+You might see:
+
+```
+18
+```
+
+Check that `psql.exe` exists:
+
+```powershell
+Test-Path "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+```
+
+Expected:
+
+```
+True
+```
+
+---
+
+# 6. Verify the PostgreSQL Windows Service
+
+PostgreSQL normally runs as a Windows service.
+
+Run:
+
+```powershell
+Get-Service | Where-Object {$_.Name -like "postgres*"}
+```
+
+Expected:
+
+```
+Status   Name               DisplayName
+------   ----               -----------
+Running  postgresql-x64-18  postgresql-x64-18 - PostgreSQL Server
+```
+
+If the status is:
+
+```
+Running
+```
+
+the PostgreSQL server is running.
+
+If it is stopped, PostgreSQL may not accept database connections.
+
+---
+
+# 7. Check Whether PostgreSQL Is Accepting Connections
+
+You do not actually need `psql` for this test.
+
+Use:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\pg_isready.exe"
+```
+
+A healthy server should return something similar to:
+
+```
+localhost:5432 - accepting connections
+```
+
+This is an important troubleshooting technique.
+
+It separates:
+
+```
+Is PostgreSQL running?
+```
+
+from:
+
+```
+Can I execute psql?
+```
+
+Those are two different questions.
+
+---
+
+# 8. If `psql` Is "Not Recognized"
+
+You may see:
+
+```
+psql : The term 'psql' is not recognized...
+```
+
+This usually means Windows cannot find PostgreSQL's `bin` directory through PATH.
+
+First locate PostgreSQL:
+
+```powershell
+Get-ChildItem "C:\Program Files\PostgreSQL" -Directory
+```
+
+Then check:
+
+```powershell
+Test-Path "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+```
+
+If it returns:
+
+```
+True
+```
+
+PostgreSQL is installed.
+
+The problem is likely PATH.
+
+---
+
+# 9. Add PostgreSQL to PATH
+
+If PostgreSQL is installed but `psql` cannot be found, add the PostgreSQL `bin` directory to the user's PATH.
+
+Example:
+
+```powershell
+$pgPath = "C:\Program Files\PostgreSQL\18\bin"
+
+[Environment]::SetEnvironmentVariable(
+    "Path",
+    [Environment]::GetEnvironmentVariable("Path", "User") + ";" + $pgPath,
+    "User"
+)
+```
+
+Close PowerShell.
+
+Open a **new** PowerShell window.
+
+Then test:
+
+```powershell
+psql --version
+```
+
+Expected:
+
+```
+psql (PostgreSQL) 18.x
+```
+
+---
+
+# 10. Important Windows Security Issue: Application Control
+
+Sometimes `psql.exe` may exist but still fail to execute.
+
+For example:
+
+```
+An Application Control policy has blocked this file
+```
+
+This is different from a PATH problem.
+
+A useful diagnostic is to execute `psql` using its full path:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\psql.exe" --version
+```
+
+If Windows reports:
+
+```
+An Application Control policy has blocked this file
+```
+
+then PATH is not the immediate problem.
+
+Windows is finding the executable but preventing it from running.
+
+---
+
+# 11. Compare PostgreSQL Executables
+
+Test another PostgreSQL command:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe" --version
+```
+
+and:
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\pg_isready.exe" --version
+```
+
+If those work while `psql.exe` does not, the PostgreSQL installation itself is probably not generally broken.
+
+---
+
+# 12. Inspect Windows Code Integrity Events
+
+Windows records Application Control and Code Integrity events.
+
+Run:
+
+```powershell
+Get-WinEvent -LogName "Microsoft-Windows-CodeIntegrity/Operational" -MaxEvents 20 |
+Select-Object TimeCreated, Id, LevelDisplayName, Message |
+Format-List
+```
+
+Look for messages involving:
+
+```
+Smart App Control
+```
+
+or:
+
+```
+Code Integrity
+```
+
+or:
+
+```
+Enterprise signing level requirements
+```
+
+For example:
+
+```
+Smart App Control Block Details
+```
+
+This can confirm that Windows security—not PostgreSQL configuration—is preventing the executable from running.
+
+---
+
+# 13. Check the Executable's Signature
+
+You can inspect whether an executable is digitally signed:
+
+```powershell
+Get-AuthenticodeSignature `
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" |
+Format-List Status,StatusMessage,SignerCertificate
+```
+
+Possible results include:
+
+```
+Status : Valid
+```
+
+or:
+
+```
+Status : NotSigned
+```
+
+A `NotSigned` result can be relevant when Windows Application Control policies require particular signing/reputation levels.
+
+### Important security principle
+
+Do **not** immediately disable Smart App Control, Windows Defender, or other security protections simply to make a development tool run.
+
+First determine exactly what is blocking the executable.
+
+---
+
+# 14. PostgreSQL Can Still Work Without `psql`
+
+An important troubleshooting distinction:
+
+```
+PostgreSQL Server
+        ↓
+Can be running correctly
+```
+
+while:
+
+```
+psql.exe
+        ↓
+May be blocked by Windows
+```
+
+The server and the command-line client are separate components.
+
+Therefore, if:
+
+```powershell
+pg_isready
+```
+
+returns:
+
+```text
+accepting connections
+```
+
+the database server itself is functioning.
+
+Tools such as:
+
+* VS Code PostgreSQL extensions
+* pgAdmin
+* Prisma
+* Node.js PostgreSQL drivers
+
+may still connect successfully.
+
+---
+
+# 15. Create a Development Database
+
+You can create a dedicated database for each major application.
+
+For example:
+
+```
+akataslopsa
+```
+
+A clean development structure might be:
+
+```
+PostgreSQL Server
+│
+└── akataslopsa
+```
+
+Avoid using the default `postgres` database as your application's production database.
+
+---
+
+# 16. Verify the Database
+
+If `psql` is working:
+
+```powershell
+psql -U postgres -l
+```
+
+This lists databases.
+
+You can also connect directly:
+
+```powershell
+psql -U postgres -d akataslopsa
+```
+
+Then PostgreSQL should provide an interactive prompt:
+
+```
+akataslopsa=#
+```
+
+Exit with:
+
+```sql
+\q
+```
+
+---
+
+# 17. Connect PostgreSQL to VS Code
+
+You can use a PostgreSQL extension or database tool in VS Code.
+
+Typical connection information:
+
+```
+Host: localhost
+Port: 5432
+Database: akataslopsa
+Username: postgres
+Password: your PostgreSQL password
+```
+
+Do not publish your password.
+
+VS Code connecting successfully is evidence that the server and credentials are usable through that client.
+
+---
+
+# 18. Configure Environment Variables
+
+For Node.js, Next.js, Prisma, and similar applications, use `.env`.
+
+Example:
+
+```env
+DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@localhost:5432/akataslopsa?schema=public"
+```
+
+Never hard-code:
+
+```
+password
+API keys
+secret keys
+tokens
+```
+
+inside application source code.
+
+---
+
+# 19. Create `.env` from `.env.example`
+
+A good project should have:
+
+```
+.env
+.env.example
+```
+
+`.env` contains actual development secrets.
+
+`.env.example` contains only the variable names/placeholders.
+
+Example:
+
+```env
+DATABASE_URL=
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=
+PAYSTACK_SECRET_KEY=
+PAYSTACK_PUBLIC_KEY=
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+```
+
+The actual `.env` file should not be committed to Git.
+
+---
+
+# 20. Protect `.env` with `.gitignore`
+
+Your `.gitignore` should include:
+
+```gitignore
+.env
+.env.local
+.env.*.local
+```
+
+This prevents sensitive local configuration from accidentally being committed.
+
+Check:
+
+```powershell
+Get-Content .gitignore
+```
+
+---
+
+# 21. Verify Prisma Can Read the Environment
+
+For a Prisma project, your schema normally contains:
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+Generate Prisma Client:
+
+```powershell
+npx prisma generate
+```
+
+Successful output should indicate that Prisma Client was generated.
+
+---
+
+# 22. Test the Database Connection with Prisma
+
+Use:
+
+```powershell
+npx prisma db pull
+```
+
+There are several possible outcomes.
+
+### Successful connection
+
+Prisma reads the database.
+
+### `P1012 Environment variable not found`
+
+Example:
+
+```
+Environment variable not found: DATABASE_URL
+```
+
+Meaning:
+
+```
+Prisma cannot find .env/DATABASE_URL
+```
+
+Check:
+
+```powershell
+Get-ChildItem -Force -Name .env*
+```
+
+You should have:
+
+```
+.env
+.env.example
+```
+
+### `P1000 Authentication failed`
+
+Example:
+
+```
+Authentication failed against database server
+```
+
+Meaning:
+
+```
+PostgreSQL is reachable
+BUT
+the username/password is incorrect
+```
+
+Check the credentials in `DATABASE_URL`.
+
+Do not expose the password when troubleshooting publicly.
+
+### `P4001 Database is empty`
+
+Example:
+
+```
+The introspected database was empty
+```
+
+Meaning:
+
+```
+Connection works
+BUT
+the database contains no tables
+```
+
+This is not a PostgreSQL installation problem.
+
+For a new project, this usually means the database is ready for the application's schema/migrations.
+
+---
+
+# 23. Prisma Migration Workflow
+
+For a new project where Prisma is the source of truth for the database structure:
+
+```text
+Prisma Schema
+      ↓
+Migration
+      ↓
+PostgreSQL
+      ↓
+Tables
+```
+
+After defining the models:
+
+```powershell
+npx prisma migrate dev --name init
+```
+
+Then:
+
+```powershell
+npx prisma generate
+```
+
+You can inspect the database through:
+
+```powershell
+npx prisma studio
+```
+
+---
+
+# 24. Recommended Verification Checklist
+
+Whenever setting up PostgreSQL for a new project, run these checks in order.
+
+### Installation
+
+```powershell
+Get-ChildItem "C:\Program Files\PostgreSQL" -Directory
+```
+
+### Executable
+
+```powershell
+Test-Path "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+```
+
+### Service
+
+```powershell
+Get-Service | Where-Object {$_.Name -like "postgres*"}
+```
+
+### Server readiness
+
+```powershell
+& "C:\Program Files\PostgreSQL\18\bin\pg_isready.exe"
+```
+
+### CLI
+
+```powershell
+psql --version
+```
+
+### Database
+
+```
+Verify database exists.
+```
+
+### Environment
+
+```powershell
+Get-ChildItem -Force -Name .env*
+```
+
+### Prisma
+
+```powershell
+npx prisma generate
+```
+
+### Connection
+
+```powershell
+npx prisma db pull
+```
+
+### Migration
+
+```powershell
+npx prisma migrate dev --name init
+```
+
+---
+
+# 25. Troubleshooting Decision Tree
+
+When something fails, identify which layer is failing.
+
+```
+PostgreSQL setup
+       │
+       ▼
+Is PostgreSQL installed?
+       │
+       ├── No → Install PostgreSQL
+       │
+       └── Yes
+             │
+             ▼
+Is PostgreSQL service running?
+             │
+             ├── No → Start/fix service
+             │
+             └── Yes
+                   │
+                   ▼
+Is server accepting connections?
+                   │
+                   ├── No → Check server/port
+                   │
+                   └── Yes
+                         │
+                         ▼
+Can psql execute?
+                         │
+                         ├── No
+                         │    ├── PATH problem
+                         │    └── Windows security/App Control
+                         │
+                         └── Yes
+                               │
+                               ▼
+Can the application authenticate?
+                               │
+                               ├── No → Check credentials
+                               │
+                               └── Yes
+                                     │
+                                     ▼
+Does database contain tables?
+                                     │
+                                     ├── No → Run migrations
+                                     │
+                                     └── Yes → Ready
+```
+
+---
+
+# 26. Common Mistakes to Avoid
+
+### Mistake 1 — Reinstalling immediately
+
+If:
+
+```
+PostgreSQL service = Running
+pg_isready = accepting connections
+```
+
+do not reinstall PostgreSQL just because `psql` isn't recognized.
+
+---
+
+### Mistake 2 — Confusing PATH with installation
+
+This:
+
+```
+psql is not recognized
+```
+
+does not necessarily mean PostgreSQL isn't installed.
+
+Check:
+
+```powershell
+Test-Path "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+```
+
+---
+
+### Mistake 3 — Ignoring Windows security policies
+
+If the full path produces:
+
+```
+Application Control policy has blocked this file
+```
+
+PATH is not the main problem.
+
+Investigate Code Integrity/Smart App Control.
+
+---
+
+### Mistake 4 — Putting secrets in Git
+
+Never commit:
+
+```
+DATABASE_URL
+PAYSTACK_SECRET_KEY
+CLOUDINARY_API_SECRET
+NEXTAUTH_SECRET
+```
+
+Use `.env` and `.gitignore`.
+
+---
+
+### Mistake 5 — Creating database tables manually when Prisma is the source of truth
+
+If the project uses Prisma migrations, don't randomly create tables through pgAdmin or SQL unless there is a deliberate reason.
+
+Prefer:
+
+```
+schema.prisma
+      ↓
+migration
+      ↓
+PostgreSQL
+```
+
+---
+
+### Mistake 6 — Running major dependency upgrades during initial setup
+
+If your project is working with:
+
+```
+Prisma 5.x
+```
+
+and the CLI announces:
+
+```
+Prisma 8.x available
+```
+
+don't automatically upgrade.
+
+First stabilize the project.
+
+Major upgrades should be deliberate and tested.
+
+---
+
+# 27. Development Best Practice
+
+For every new project, establish this baseline:
+
+```
+1. Install PostgreSQL
+2. Verify installation
+3. Verify PostgreSQL service
+4. Verify server readiness
+5. Create project database
+6. Configure .env
+7. Protect .env with .gitignore
+8. Configure ORM
+9. Test database connection
+10. Define schema
+11. Run migrations
+12. Generate ORM client
+13. Inspect database
+14. Begin application development
+```
+
+The key principle is:
+
+> **Diagnose the layer that failed before changing the system.**
+
+For example:
+
+```
+psql not recognized
+```
+
+→ check PATH.
+
+```
+psql blocked by Application Control
+```
+
+→ investigate Windows security.
+
+```
+Prisma P1000
+```
+
+→ investigate credentials.
+
+```
+Prisma P1012
+```
+
+→ investigate environment variables.
+
+```
+Prisma P4001
+```
+
+→ database is reachable but contains no tables.
+
+This prevents unnecessary reinstalls and destructive troubleshooting.
+
+---
+
+# 28. AKATASLOPSA Setup Case Study
+
+The AKATASLOPSA project followed this diagnostic process.
+
+### PostgreSQL
+
+```
+PostgreSQL 18.6
+```
+
+installed successfully.
+
+### Service
+
+```
+postgresql-x64-18
+```
+
+was:
+
+```
+Running
+```
+
+### Server
+
+```
+:5432 - accepting connections
+```
+
+confirmed that PostgreSQL was operational.
+
+### `psql`
+
+`psql.exe` existed but Windows Smart App Control blocked its execution.
+
+Therefore, PostgreSQL did not need to be reinstalled.
+
+### Environment
+
+Initially:
+
+```
+.env
+```
+
+did not exist.
+
+Only:
+
+```
+.env.example
+```
+
+was present.
+
+Creating `.env` allowed Prisma to load the environment.
+
+### Authentication
+
+Prisma initially reported:
+
+```
+P1000
+```
+
+meaning the database credentials were incorrect.
+
+After correcting the credentials, Prisma successfully connected.
+
+### Database
+
+Prisma then reported:
+
+```
+P4001
+```
+
+meaning:
+
+```
+Database exists
+Connection works
+Database contains no tables
+```
+
+This is the correct point to proceed to Prisma schema/migrations.
+
+---
+
+# 29. Final PostgreSQL Setup Standard
+
+A PostgreSQL development environment is considered ready when:
+
+* [ ] PostgreSQL is installed
+* [ ] PostgreSQL service is running
+* [ ] PostgreSQL accepts connections
+* [ ] Required database exists
+* [ ] Credentials are valid
+* [ ] `.env` exists
+* [ ] `.env` is ignored by Git
+* [ ] ORM can read the environment
+* [ ] ORM can connect to PostgreSQL
+* [ ] Database schema is defined
+* [ ] Initial migration succeeds
+* [ ] Tables exist
+* [ ] ORM client is generated
+* [ ] Database can be inspected
+* [ ] Application can perform a test query
+
+At that point, PostgreSQL setup is complete and application development can begin.
+
+---
+
+## Core Principle
+
+**Don't troubleshoot PostgreSQL by guessing.**
+
+Use this sequence:
+
+```
+INSTALL
+   ↓
+VERIFY
+   ↓
+CONNECT
+   ↓
+AUTHENTICATE
+   ↓
+MIGRATE
+   ↓
+TEST
+```
+
+
+
+# Prisma ORM Setup, Configuration & Troubleshooting Playbook
+
+**Purpose:** Reusable Prisma setup guide for Node.js / TypeScript projects
+**ORM:** Prisma
+**Database examples:** PostgreSQL, with notes applicable to other supported databases
+**Recommended environment:** Node.js + TypeScript
+**Audience:** Developers building backend applications, APIs, and full-stack applications
+
+---
+
+# 1. What Is Prisma?
+
+Prisma is a modern ORM (Object-Relational Mapper) for Node.js and TypeScript applications.
+
+It allows an application to interact with a relational database using a strongly typed JavaScript/TypeScript API instead of writing SQL for every operation.
+
+A typical architecture looks like:
+
+```
+Application
+     ↓
+Prisma Client
+     ↓
+Prisma ORM
+     ↓
+Database
+```
+
+For example:
+
+```typescript
+const users = await prisma.user.findMany()
+```
+
+Instead of manually writing:
+
+```sql
+SELECT * FROM users;
+```
+
+Prisma provides:
+
+* Type-safe database queries
+* Database schema management
+* Migrations
+* Prisma Client
+* Prisma Studio
+* Relationship handling
+* Query generation
+* Developer tooling
+
+---
+
+# 2. Prerequisites
+
+Before installing Prisma, make sure the project has:
+
+* Node.js
+* npm
+* A database server
+* A project directory
+* Git (recommended)
+
+Check Node.js:
+
+```powershell
+node -v
+```
+
+Check npm:
+
+```powershell
+npm -v
+```
+
+Check Git:
+
+```powershell
+git --version
+```
+
+For PostgreSQL, verify that PostgreSQL is installed and running.
+
+Example:
+
+```powershell
+pg_isready
+```
+
+Expected:
+
+```
+localhost:5432 - accepting connections
+```
+
+---
+
+# 3. Create or Open the Project
+
+Create a project:
+
+```powershell
+mkdir my-project
+cd my-project
+```
+
+Initialize npm:
+
+```powershell
+npm init -y
+```
+
+For an existing application, simply open the project directory.
+
+---
+
+# 4. Install Prisma
+
+Prisma normally requires two important packages:
+
+### Prisma CLI
+
+```powershell
+npm install -D prisma
+```
+
+The CLI is primarily used for development commands such as:
+
+```
+prisma init
+prisma format
+prisma validate
+prisma generate
+prisma migrate
+prisma studio
+```
+
+### Prisma Client
+
+```powershell
+npm install @prisma/client
+```
+
+Prisma Client is the library your application uses to communicate with the database.
+
+Therefore:
+
+```
+prisma
+      ↓
+Development tooling
+
+@prisma/client
+      ↓
+Application database access
+```
+
+Verify the installation:
+
+```powershell
+npx prisma -v
+```
+
+You should see the Prisma CLI and Prisma Client versions.
+
+---
+
+# 5. Initialize Prisma
+
+Inside the project:
+
+```powershell
+npx prisma init
+```
+
+Prisma normally creates:
+
+```
+prisma/
+└── schema.prisma
+
+.env
+```
+
+Depending on the Prisma/database configuration and project setup, additional files may be present.
+
+The important file is:
+
+```
+prisma/schema.prisma
+```
+
+This is the central Prisma schema file.
+
+---
+
+# 6. Understand `schema.prisma`
+
+The Prisma schema contains several important sections.
+
+A typical schema looks like:
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+```
+
+The three major sections are:
+
+```
+Generator
+Datasource
+Models
+```
+
+---
+
+# 7. Generator
+
+The generator tells Prisma what client to generate.
+
+Example:
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+```
+
+This generates Prisma Client for the application.
+
+After changing the schema, run:
+
+```powershell
+npx prisma generate
+```
+
+---
+
+# 8. Datasource
+
+The datasource tells Prisma which database it should connect to.
+
+For PostgreSQL:
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+The connection string should normally be stored in an environment variable rather than directly inside the schema.
+
+Example `.env`:
+
+```env
+DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
+```
+
+### Important
+
+Do not commit `.env` to Git.
+
+Add it to `.gitignore`:
+
+```gitignore
+.env
+.env.local
+```
+
+A safe repository can contain:
+
+```
+.env.example
+```
+
+with a placeholder:
+
+```env
+DATABASE_URL=
+```
+
+Never commit real passwords, API keys, or production database credentials.
+
+---
+
+# 9. Database Provider
+
+The `provider` identifies the database engine.
+
+For PostgreSQL:
+
+```prisma
+provider = "postgresql"
+```
+
+For MySQL:
+
+```prisma
+provider = "mysql"
+```
+
+For SQLite:
+
+```prisma
+provider = "sqlite"
+```
+
+For SQL Server:
+
+```prisma
+provider = "sqlserver"
+```
+
+The correct provider must match the database being used.
+
+---
+
+# 10. Creating Models
+
+Models represent database tables.
+
+Example:
+
+```prisma
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+```
+
+This describes a table containing:
+
+```
+id
+name
+email
+createdAt
+```
+
+---
+
+# 11. Common Prisma Field Types
+
+Common types include:
+
+```prisma
+String
+Int
+BigInt
+Float
+Decimal
+Boolean
+DateTime
+Json
+Bytes
+```
+
+Example:
+
+```prisma
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Decimal
+  inStock     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+```
+
+---
+
+# 12. Required and Optional Fields
+
+Required:
+
+```prisma
+name String
+```
+
+Optional:
+
+```prisma
+description String?
+```
+
+The `?` means the database field may contain `NULL`.
+
+---
+
+# 13. Primary Keys
+
+A primary key uniquely identifies a record.
+
+Example:
+
+```prisma
+id Int @id @default(autoincrement())
+```
+
+Meaning:
+
+* `id` is the primary key
+* it is an integer
+* the database automatically generates it
+
+Another common approach is UUID:
+
+```prisma
+id String @id @default(uuid())
+```
+
+---
+
+# 14. Unique Fields
+
+Use `@unique` when a field must contain unique values.
+
+Example:
+
+```prisma
+email String @unique
+```
+
+This means two records cannot have the same email address.
+
+Example:
+
+```
+john@example.com
+mary@example.com
+```
+
+is valid.
+
+But:
+
+```
+john@example.com
+john@example.com
+```
+
+is not.
+
+---
+
+# 15. Default Values
+
+Prisma supports default values.
+
+Example:
+
+```prisma
+createdAt DateTime @default(now())
+```
+
+Boolean:
+
+```prisma
+active Boolean @default(true)
+```
+
+Integer:
+
+```prisma
+counter Int @default(0)
+```
+
+---
+
+# 16. Enums
+
+Enums are useful when a field should only contain predefined values.
+
+Example:
+
+```prisma
+enum UserRole {
+  USER
+  ADMIN
+  MODERATOR
+}
+```
+
+Then:
+
+```prisma
+model User {
+  id   Int      @id @default(autoincrement())
+  role UserRole @default(USER)
+}
+```
+
+This prevents arbitrary values from being inserted into the field.
+
+---
+
+# 17. Relationships
+
+Prisma supports relational database relationships.
+
+Common relationships:
+
+```
+One-to-one
+One-to-many
+Many-to-many
+```
+
+## One-to-many
+
+Example:
+
+```
+User → Posts
+```
+
+One user can have many posts.
+
+Schema:
+
+```prisma
+model User {
+  id    Int    @id @default(autoincrement())
+  name  String
+  posts Post[]
+}
+
+model Post {
+  id       Int  @id @default(autoincrement())
+  title    String
+  authorId Int
+
+  author User @relation(fields: [authorId], references: [id])
+}
+```
+
+The foreign key is:
+
+```prisma
+authorId Int
+```
+
+---
+
+# 18. Relation Fields vs Database Foreign Keys
+
+This distinction is important.
+
+In:
+
+```prisma
+authorId Int
+```
+
+`authorId` is the actual foreign-key field.
+
+In:
+
+```prisma
+author User @relation(fields: [authorId], references: [id])
+```
+
+`author` is Prisma's relation field.
+
+Therefore:
+
+```
+authorId → database foreign key
+author   → Prisma relationship
+```
+
+---
+
+# 19. Cascading and Delete Behavior
+
+Relationships can specify what happens when related records are deleted.
+
+Example:
+
+```prisma
+author User @relation(
+  fields: [authorId],
+  references: [id],
+  onDelete: Cascade
+)
+```
+
+Possible behaviors include:
+
+```
+Cascade
+Restrict
+SetNull
+NoAction
+```
+
+Use these deliberately.
+
+For example, deleting a user and automatically deleting every post belonging to that user may be appropriate in some systems, but dangerous in others.
+
+---
+
+# 20. Formatting the Schema
+
+After editing `schema.prisma`:
+
+```powershell
+npx prisma format
+```
+
+This formats the schema and can also help expose syntax problems.
+
+Always consider running it after major schema changes.
+
+---
+
+# 21. Validate the Schema
+
+Run:
+
+```powershell
+npx prisma validate
+```
+
+Successful output indicates that Prisma can parse and validate the schema.
+
+If this fails, fix the schema before attempting migrations.
+
+A useful development sequence is:
+
+```
+Edit schema
+    ↓
+prisma format
+    ↓
+prisma validate
+    ↓
+prisma generate
+    ↓
+migration
+```
+
+---
+
+# 22. Generate Prisma Client
+
+Run:
+
+```powershell
+npx prisma generate
+```
+
+This generates the Prisma Client based on the current schema.
+
+If the schema contains:
+
+```prisma
+model User {
+  ...
+}
+```
+
+Prisma Client will provide typed methods such as:
+
+```typescript
+prisma.user.findMany()
+prisma.user.findUnique()
+prisma.user.create()
+prisma.user.update()
+prisma.user.delete()
+```
+
+---
+
+# 23. Database Migrations
+
+Prisma migrations keep the database structure synchronized with the Prisma schema.
+
+For development:
+
+```powershell
+npx prisma migrate dev --name init
+```
+
+This can:
+
+1. Compare the Prisma schema with the database
+2. Create a migration
+3. Apply the migration
+4. Update the database
+5. Regenerate Prisma Client when appropriate
+
+A migration directory may look like:
+
+```
+prisma/
+├── schema.prisma
+└── migrations/
+    └── 20260916040943_init/
+        └── migration.sql
+```
+
+---
+
+# 24. Naming Migrations
+
+Use descriptive migration names.
+
+Examples:
+
+```powershell
+npx prisma migrate dev --name init
+```
+
+```powershell
+npx prisma migrate dev --name add_user_profile
+```
+
+```powershell
+npx prisma migrate dev --name add_payment_status
+```
+
+```powershell
+npx prisma migrate dev --name update_event_fields
+```
+
+Migration names should describe the database change.
+
+---
+
+# 25. Check Migration Status
+
+Run:
+
+```powershell
+npx prisma migrate status
+```
+
+A healthy development database should report that the database schema is up to date.
+
+This command is useful when you are unsure whether migrations have been applied.
+
+---
+
+# 26. Prisma Studio
+
+Prisma Studio is a visual database browser.
+
+Run:
+
+```powershell
+npx prisma studio
+```
+
+It normally opens:
+
+```text
+http://localhost:5555
+```
+
+Studio allows you to inspect and manage database records through a graphical interface.
+
+For example:
+
+```
+User
+Product
+Order
+Payment
+```
+
+You can inspect:
+
+* records
+* fields
+* relationships
+* data values
+
+Prisma Studio is particularly useful during development and debugging.
+
+---
+
+# 27. Prisma Client in a Next.js Application
+
+Create:
+
+```
+lib/
+└── prisma.ts
+```
+
+Use:
+
+```typescript
+import { PrismaClient } from '@prisma/client'
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient()
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma
+}
+```
+
+This creates a reusable Prisma Client instance.
+
+The global reference is particularly useful during development because Next.js can reload modules frequently.
+
+Without this pattern, repeated hot reloads can create too many Prisma connections.
+
+---
+
+# 28. Using Prisma Client
+
+Example:
+
+```typescript
+import { prisma } from '@/lib/prisma'
+```
+
+Then:
+
+```typescript
+const users = await prisma.user.findMany()
+```
+
+Create:
+
+```typescript
+const user = await prisma.user.create({
+  data: {
+    name: 'John Doe',
+    email: 'john@example.com',
+  },
+})
+```
+
+Find one:
+
+```typescript
+const user = await prisma.user.findUnique({
+  where: {
+    email: 'john@example.com',
+  },
+})
+```
+
+Update:
+
+```typescript
+await prisma.user.update({
+  where: {
+    id: 1,
+  },
+  data: {
+    name: 'Jane Doe',
+  },
+})
+```
+
+Delete:
+
+```typescript
+await prisma.user.delete({
+  where: {
+    id: 1,
+  },
+})
+```
+
+---
+
+# 29. Database Health Check
+
+Before building application features, verify that the application can communicate with the database.
+
+For a Next.js application, create:
+
+```
+app/
+└── api/
+    └── health/
+        └── route.ts
+```
+
+Example:
+
+```typescript
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
+
+export async function GET() {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+
+    return NextResponse.json({
+      success: true,
+      message: 'Database connection is working',
+    })
+  } catch (error) {
+    console.error('Database health check failed:', error)
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: 'Database connection failed',
+      },
+      { status: 500 }
+    )
+  }
+}
+```
+
+Open:
+
+```
+http://localhost:3000/api/health
+```
+
+Expected:
+
+```json
+{
+  "success": true,
+  "message": "Database connection is working"
+}
+```
+
+This verifies:
+
+```text
+Browser
+   ↓
+Next.js API
+   ↓
+Prisma Client
+   ↓
+PostgreSQL
+```
+
+---
+
+# 30. Recommended Prisma Development Workflow
+
+For most schema changes:
+
+```
+1. Edit schema.prisma
+        ↓
+2. prisma format
+        ↓
+3. prisma validate
+        ↓
+4. prisma generate
+        ↓
+5. prisma migrate dev --name <description>
+        ↓
+6. prisma migrate status
+        ↓
+7. prisma studio
+        ↓
+8. Test application
+```
+
+Commands:
+
+```powershell
+npx prisma format
+npx prisma validate
+npx prisma generate
+npx prisma migrate dev --name describe_change
+npx prisma migrate status
+npx prisma studio
+```
+
+---
+
+# 31. Common Problem: Prisma Command Not Found
+
+If:
+
+```powershell
+prisma
+```
+
+does not work, use:
+
+```powershell
+npx prisma
+```
+
+If Prisma is not installed:
+
+```powershell
+npm install -D prisma
+```
+
+Then:
+
+```powershell
+npx prisma -v
+```
+
+---
+
+# 32. Common Problem: Prisma Client Not Generated
+
+You may encounter an error indicating that Prisma Client has not been generated.
+
+Run:
+
+```powershell
+npx prisma generate
+```
+
+If necessary:
+
+```powershell
+npm install @prisma/client
+```
+
+Then:
+
+```powershell
+npx prisma generate
+```
+
+Restart the development server afterward.
+
+---
+
+# 33. Common Problem: Schema Validation Error
+
+If:
+
+```powershell
+npx prisma validate
+```
+
+fails, inspect:
+
+```
+prisma/schema.prisma
+```
+
+Check:
+
+* Missing braces
+* Incorrect field types
+* Invalid relation definitions
+* Incorrect enum values
+* Incorrect model names
+* Missing referenced models
+* Invalid attributes
+* Incorrect datasource configuration
+
+Then run:
+
+```powershell
+npx prisma format
+npx prisma validate
+```
+
+---
+
+# 34. Relation Syntax Troubleshooting
+
+Relations are a common source of Prisma syntax errors.
+
+A safe form is:
+
+```prisma
+model Post {
+  id       Int  @id @default(autoincrement())
+  authorId Int
+
+  author User @relation(fields: [authorId], references: [id])
+}
+```
+
+For complicated relations, keep the entire `@relation(...)` declaration on one line while troubleshooting:
+
+```prisma
+author User @relation(fields: [authorId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+```
+
+This makes parser errors easier to isolate.
+
+After changing it:
+
+```powershell
+npx prisma format
+npx prisma validate
+```
+
+---
+
+# 35. Common Problem: Database Connection Error
+
+If Prisma cannot connect to the database, check the database server first.
+
+For PostgreSQL:
+
+```powershell
+pg_isready
+```
+
+Expected:
+
+```
+localhost:5432 - accepting connections
+```
+
+Then check:
+
+* PostgreSQL service is running
+* database exists
+* username is correct
+* password is correct
+* port is correct
+* hostname is correct
+* `DATABASE_URL` is correct
+
+Do not expose your complete `DATABASE_URL` when asking for help.
+
+Instead, provide a redacted version such as:
+
+```
+postgresql://USER:***@localhost:5432/DATABASE
+```
+
+---
+
+# 36. Windows PostgreSQL Service
+
+On Windows, PostgreSQL may run as a Windows service.
+
+Check:
+
+```powershell
+Get-Service *postgres*
+```
+
+You may see something similar to:
+
+```
+postgresql-x64-18
+```
+
+If stopped, start it:
+
+```powershell
+Start-Service postgresql-x64-18
+```
+
+Check again:
+
+```powershell
+Get-Service postgresql-x64-18
+```
+
+---
+
+# 37. Common Problem: `psql` Does Not Open
+
+On Windows, `psql.exe` can sometimes be blocked by security controls such as:
+
+* Smart App Control
+* Windows Defender
+* organizational security policies
+* application reputation policies
+
+If Prisma is already connecting successfully, do **not** disable Windows security features merely to make `psql` work.
+
+Prisma itself can verify database connectivity.
+
+Useful alternatives include:
+
+```powershell
+npx prisma migrate status
+```
+
+and:
+
+```powershell
+npx prisma studio
+```
+
+You can also use a trusted database GUI.
+
+---
+
+# 38. Common Problem: Migration Failed
+
+If:
+
+```powershell
+npx prisma migrate dev
+```
+
+fails:
+
+First run:
+
+```powershell
+npx prisma format
+npx prisma validate
+```
+
+Then inspect the migration status:
+
+```powershell
+npx prisma migrate status
+```
+
+If the schema and database are out of sync, determine what changed before resetting anything.
+
+Do not immediately run destructive commands.
+
+---
+
+# 39. Development Database Reset
+
+Prisma provides:
+
+```powershell
+npx prisma migrate reset
+```
+
+This is a **destructive development command**.
+
+It can:
+
+* delete database data
+* recreate the database schema
+* reapply migrations
+* run seed logic when configured
+
+Use it only when you are certain the database can be reset.
+
+Never casually use it against a production database.
+
+---
+
+# 40. Development vs Production Migrations
+
+Development:
+
+```powershell
+npx prisma migrate dev
+```
+
+Production/deployment:
+
+```powershell
+npx prisma migrate deploy
+```
+
+The distinction matters.
+
+`migrate dev` is designed for development and can perform development-oriented migration operations.
+
+`migrate deploy` applies already-created migrations to the target database.
+
+A typical production deployment flow is:
+
+```text
+Developer
+   ↓
+schema.prisma
+   ↓
+migrate dev
+   ↓
+migration committed to Git
+   ↓
+Deployment
+   ↓
+migrate deploy
+   ↓
+Production database
+```
+
+---
+
+# 41. Never Manually Edit Existing Migration History Without Understanding the Consequences
+
+Migration files represent database history.
+
+Once migrations have been applied and shared with a team, changing old migration files can create inconsistencies.
+
+Prefer creating a new migration:
+
+```powershell
+npx prisma migrate dev --name describe_new_change
+```
+
+instead of rewriting migration history.
+
+---
+
+# 42. Schema Changes
+
+Suppose you initially have:
+
+```prisma
+model User {
+  id   Int    @id @default(autoincrement())
+  name String
+}
+```
+
+Later you add:
+
+```prisma
+email String @unique
+```
+
+Run:
+
+```powershell
+npx prisma format
+npx prisma validate
+npx prisma generate
+npx prisma migrate dev --name add_user_email
+```
+
+The database is then updated through the migration.
+
+---
+
+# 43. Prisma Queries and Type Safety
+
+One major advantage of Prisma is generated TypeScript types.
+
+For example:
+
+```typescript
+const user = await prisma.user.findUnique({
+  where: {
+    id: 1,
+  },
+})
+```
+
+Your editor can understand:
+
+```text
+user.id
+user.name
+user.email
+```
+
+If a field does not exist in the Prisma model, TypeScript can identify the problem during development.
+
+This reduces many database-related programming errors.
+
+---
+
+# 44. Useful Query Operations
+
+### Find all
+
+```typescript
+await prisma.user.findMany()
+```
+
+### Find one
+
+```typescript
+await prisma.user.findUnique({
+  where: {
+    id: 1,
+  },
+})
+```
+
+### Find first matching record
+
+```typescript
+await prisma.user.findFirst({
+  where: {
+    name: 'John',
+  },
+})
+```
+
+### Create
+
+```typescript
+await prisma.user.create({
+  data: {
+    name: 'John',
+  },
+})
+```
+
+### Update
+
+```typescript
+await prisma.user.update({
+  where: {
+    id: 1,
+  },
+  data: {
+    name: 'Jane',
+  },
+})
+```
+
+### Delete
+
+```typescript
+await prisma.user.delete({
+  where: {
+    id: 1,
+  },
+})
+```
+
+---
+
+# 45. Filtering
+
+Example:
+
+```typescript
+const users = await prisma.user.findMany({
+  where: {
+    active: true,
+  },
+})
+```
+
+Multiple conditions:
+
+```typescript
+const users = await prisma.user.findMany({
+  where: {
+    active: true,
+    role: 'ADMIN',
+  },
+})
+```
+
+---
+
+# 46. Selecting Specific Fields
+
+Instead of retrieving everything:
+
+```typescript
+const users = await prisma.user.findMany({
+  select: {
+    id: true,
+    name: true,
+    email: true,
+  },
+})
+```
+
+This can be useful when an API should expose only the information required by the client.
+
+---
+
+# 47. Including Relationships
+
+Example:
+
+```typescript
+const users = await prisma.user.findMany({
+  include: {
+    posts: true,
+  },
+})
+```
+
+This retrieves users together with their related posts.
+
+---
+
+# 48. Eager Loading
+
+Eager loading means retrieving related records as part of the query.
+
+Example:
+
+```typescript
+const orders = await prisma.order.findMany({
+  include: {
+    customer: true,
+  },
+})
+```
+
+This is useful when the application already knows it needs the related data.
+
+However, relationship loading should be designed carefully to avoid unnecessarily large queries.
+
+---
+
+# 49. The N+1 Problem
+
+A common database performance problem occurs when an application:
+
+1. Retrieves many parent records.
+2. Performs another query for each parent.
+
+Example:
+
+```
+Query users
+   ↓
+Query posts for user 1
+Query posts for user 2
+Query posts for user 3
+Query posts for user 4
+...
+```
+
+For 100 users, this can result in many database queries.
+
+Instead, use appropriate relationship loading:
+
+```typescript
+const users = await prisma.user.findMany({
+  include: {
+    posts: true,
+  },
+})
+```
+
+The exact query strategy should depend on the data being retrieved and the database workload.
+
+---
+
+# 50. Transactions
+
+Use transactions when multiple database operations must succeed or fail together.
+
+Example:
+
+```typescript
+await prisma.$transaction(async (tx) => {
+  const user = await tx.user.create({
+    data: {
+      name: 'John',
+    },
+  })
+
+  await tx.profile.create({
+    data: {
+      userId: user.id,
+    },
+  })
+})
+```
+
+If an operation fails, Prisma can roll back the transaction.
+
+Transactions are useful for operations such as:
+
+```
+Create order
++
+Create order items
++
+Update inventory
+```
+
+where partial completion would produce inconsistent data.
+
+---
+
+# 51. Prisma Logging
+
+During development, logging can help diagnose queries.
+
+Example:
+
+```typescript
+const prisma = new PrismaClient({
+  log: ['query', 'info', 'warn', 'error'],
+})
+```
+
+Do not enable verbose query logging indiscriminately in production, especially if queries may expose sensitive information.
+
+---
+
+# 52. Environment Variables
+
+A typical project might contain:
+
+```
+.env
+.env.example
+```
+
+`.env`:
+
+```env
+DATABASE_URL="..."
+```
+
+`.env.example`:
+
+```env
+DATABASE_URL=""
+```
+
+`.env` should normally be ignored by Git.
+
+Check `.gitignore`:
+
+```gitignore
+.env
+.env.local
+```
+
+---
+
+# 53. Git Workflow
+
+Commit Prisma schema and migrations:
+
+```
+prisma/
+├── schema.prisma
+└── migrations/
+```
+
+Do not commit:
+
+```
+.env
+```
+
+A typical commit might be:
+
+```powershell
+git add prisma
+git commit -m "Add Prisma database schema and initial migration"
+```
+
+---
+
+# 54. Recommended Project Structure
+
+For a Next.js application:
+
+```
+project/
+├── app/
+│   ├── api/
+│   └── ...
+├── lib/
+│   └── prisma.ts
+├── prisma/
+│   ├── migrations/
+│   └── schema.prisma
+├── public/
+├── .env
+├── .env.example
+├── .gitignore
+├── package.json
+└── tsconfig.json
+```
+
+The exact structure may differ between frameworks.
+
+---
+
+# 55. Prisma Setup Checklist
+
+Use this checklist whenever starting a new project.
+
+### Installation
+
+```
+☐ Node.js installed
+☐ Database installed/running
+☐ npm project initialized
+☐ prisma installed
+☐ @prisma/client installed
+```
+
+### Initialization
+
+```
+☐ npx prisma init
+☐ prisma/schema.prisma created
+☐ .env configured
+☐ DATABASE_URL configured
+```
+
+### Schema
+
+```
+☐ Generator configured
+☐ Datasource configured
+☐ Models created
+☐ Primary keys defined
+☐ Unique fields identified
+☐ Relationships defined
+☐ Enums defined where appropriate
+```
+
+### Verification
+
+```
+☐ prisma format
+☐ prisma validate
+☐ prisma generate
+```
+
+### Database
+
+```
+☐ Migration created
+☐ Migration applied
+☐ migrate status checked
+☐ Prisma Studio checked
+```
+
+### Application
+
+```
+☐ Prisma Client wrapper created
+☐ Database health check tested
+☐ Application query tested
+```
+
+### Security
+
+```
+☐ .env ignored
+☐ Secrets not committed
+☐ Production credentials separated
+☐ Destructive commands avoided in production
+```
+
+---
+
+# 56. Standard Troubleshooting Decision Tree
+
+When Prisma stops working, do not immediately reinstall everything.
+
+Follow this order.
+
+## Step 1 — Check Prisma
+
+```powershell
+npx prisma -v
+```
+
+If this fails, investigate the installation.
+
+## Step 2 — Format
+
+```powershell
+npx prisma format
+```
+
+## Step 3 — Validate
+
+```powershell
+npx prisma validate
+```
+
+If validation fails, fix `schema.prisma`.
+
+## Step 4 — Generate
+
+```powershell
+npx prisma generate
+```
+
+## Step 5 — Check Database
+
+For PostgreSQL:
+
+```powershell
+pg_isready
+```
+
+## Step 6 — Check Migration State
+
+```powershell
+npx prisma migrate status
+```
+
+## Step 7 — Open Studio
+
+```powershell
+npx prisma studio
+```
+
+## Step 8 — Test Application Connectivity
+
+Use a database health endpoint or a minimal Prisma query.
+
+Only after these checks should you consider deeper troubleshooting.
+
+---
+
+# 57. A Practical "Clean Prisma Setup" Sequence
+
+For a new PostgreSQL + TypeScript project:
+
+```powershell
+npm init -y
+
+npm install -D prisma
+
+npm install @prisma/client
+
+npx prisma init
+
+npx prisma format
+
+npx prisma validate
+
+npx prisma generate
+
+npx prisma migrate dev --name init
+
+npx prisma migrate status
+
+npx prisma studio
+```
+
+Then integrate Prisma Client into the application.
+
+For a Next.js application, create:
+
+```
+lib/prisma.ts
+```
+
+and add the reusable Prisma Client instance.
+
+---
+
+# 58. Important Prisma Commands Reference
+
+| Command                     | Purpose                                        |
+| --------------------------- | ---------------------------------------------- |
+| `npx prisma -v`             | Show Prisma versions                           |
+| `npx prisma init`           | Initialize Prisma                              |
+| `npx prisma format`         | Format schema                                  |
+| `npx prisma validate`       | Validate schema                                |
+| `npx prisma generate`       | Generate Prisma Client                         |
+| `npx prisma migrate dev`    | Create/apply development migration             |
+| `npx prisma migrate status` | Check migration status                         |
+| `npx prisma migrate deploy` | Apply migrations for deployment                |
+| `npx prisma migrate reset`  | Reset development database                     |
+| `npx prisma studio`         | Open database GUI                              |
+| `npx prisma db pull`        | Introspect an existing database                |
+| `npx prisma db push`        | Push schema directly without migration history |
+
+---
+
+# 59. `migrate dev` vs `db push`
+
+These commands are not interchangeable.
+
+### `migrate dev`
+
+Use when you want:
+
+```
+Schema
+  ↓
+Migration history
+  ↓
+Database
+```
+
+This is generally preferred for applications where database changes need to be tracked.
+
+### `db push`
+
+Use when you want:
+
+```
+Schema
+  ↓
+Database
+```
+
+without creating migration files.
+
+It can be convenient for prototypes and certain development workflows, but it should not replace a deliberate migration strategy for applications that require controlled schema history.
+
+---
+
+# 60. Existing Database: `db pull`
+
+If a database already exists and you want Prisma to inspect it:
+
+```powershell
+npx prisma db pull
+```
+
+Prisma will introspect the database and update the Prisma schema based on the existing database structure.
+
+Typical workflow:
+
+```
+Existing Database
+       ↓
+prisma db pull
+       ↓
+schema.prisma
+       ↓
+prisma generate
+       ↓
+Application
+```
+
+Be careful when modifying an existing production database.
+
+---
+
+# 61. Prisma and Database Architecture
+
+Remember the distinction:
+
+```
+Prisma Schema
+     ↓
+Migration
+     ↓
+Database Structure
+     ↓
+Prisma Client
+     ↓
+Application
+```
+
+The Prisma schema describes the intended data model.
+
+Migrations describe changes to the database structure.
+
+Prisma Client gives the application a typed interface for querying the database.
+
+---
+
+# 62. Final Troubleshooting Principles
+
+When Prisma fails:
+
+### Do not immediately reinstall.
+
+First determine which layer is failing.
+
+```
+Node/npm
+   ↓
+Prisma CLI
+   ↓
+Schema
+   ↓
+Generated Client
+   ↓
+Database connection
+   ↓
+Migration
+   ↓
+Application query
+```
+
+Use the smallest diagnostic command that tests the suspected layer.
+
+For example:
+
+```powershell
+npx prisma -v
+```
+
+tests Prisma installation.
+
+```powershell
+npx prisma validate
+```
+
+tests the schema.
+
+```powershell
+npx prisma generate
+```
+
+tests client generation.
+
+```powershell
+pg_isready
+```
+
+tests PostgreSQL availability.
+
+```powershell
+npx prisma migrate status
+```
+
+tests migration state.
+
+```powershell
+npx prisma studio
+```
+
+tests practical database access.
+
+This layered approach is much faster than randomly reinstalling packages or deleting files.
+
+---
+
+# 63. Quick Reference: New Project
+
+When you need Prisma in another project, the short version is:
+
+```powershell
+npm install -D prisma
+npm install @prisma/client
+
+npx prisma init
+```
+
+Configure:
+
+```
+.env
+prisma/schema.prisma
+```
+
+Then:
+
+```powershell
+npx prisma format
+npx prisma validate
+npx prisma generate
+npx prisma migrate dev --name init
+npx prisma migrate status
+npx prisma studio
+```
+
+Finally create your application-level Prisma Client:
+
+```
+lib/prisma.ts
+```
+
+and test the connection before building application features.
+
+---
+
+# 64. Golden Rule
+
+**Schema first. Validate second. Generate third. Migrate fourth. Test the database before building application features.**
+
+The safest general development sequence is:
+
+```
+Install
+   ↓
+Initialize
+   ↓
+Configure environment
+   ↓
+Design schema
+   ↓
+Format
+   ↓
+Validate
+   ↓
+Generate Client
+   ↓
+Create migration
+   ↓
+Verify migration
+   ↓
+Inspect database
+   ↓
+Connect application
+   ↓
+Health check
+   ↓
+Build API/routes
+   ↓
+Build UI
+```
+
+This workflow keeps database problems separate from application problems and makes Prisma easier to troubleshoot across different projects.
