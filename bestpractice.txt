@@ -10,3 +10,24 @@ Alternatively, use the official NextAuth CLI command:
 
 Bash
 npx auth secret
+
+
+2. Fix npm in PowerShell
+
+Let's use the least disruptive approach first.
+
+Run:
+
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+PowerShell will ask you to confirm. Enter:
+
+Y
+
+Then close that PowerShell window and open a new PowerShell terminal.
+
+Run:
+
+npm -v
+
+You should now get an npm version.
