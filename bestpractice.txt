@@ -31,3 +31,709 @@ Run:
 npm -v
 
 You should now get an npm version.
+
+3 — Install Next.js
+
+From the current directory:
+
+npm install next react react-dom
+
+This gives us the core:
+
+Next.js
+├── React
+└── React DOM
+
+4 install TypeScript and the Next.js TypeScript tooling:
+
+[npm install -D typescript @types/node @types/react @types/react-dom]
+
+5 — Install Tailwind
+
+For the UI system, we'll use Tailwind.
+
+Install:
+
+[npm install tailwindcss @tailwindcss/postcss postcss]
+
+We'll configure it immediately afterward.
+
+6 — Install our initial UI utility
+
+use Lucide (finding others ) for the interface icons:
+
+[npm install lucide-react]
+
+Run:
+
+[npm list next react react-dom tailwindcss lucide-react]
+
+We should see the packages installed.
+
+Then run:
+
+[dir]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Static Website + Node.js + MongoDB
+
+This is suitable when building a relatively simple website using:
+
+```
+HTML
+CSS
+JavaScript
+Node.js
+MongoDB
+```
+
+A typical architecture is:
+
+```
+Browser
+   │
+   ├── HTML
+   ├── CSS
+   └── JavaScript
+        │
+        ▼
+     Node.js
+     Express
+        │
+        ▼
+     MongoDB
+```
+
+### 1. Install Node.js
+
+Download and install the current Node.js LTS release.
+
+Verify:
+
+```powershell
+node -v
+npm -v
+```
+
+Example:
+
+```
+v24.x.x
+11.x.x
+```
+
+### 2. Install Git
+
+Verify:
+
+```powershell
+git --version
+```
+
+### 3. Create the project
+
+```powershell
+mkdir my-website
+cd my-website
+```
+
+Initialize npm:
+
+```powershell
+npm init -y
+```
+
+This creates:
+
+```
+package.json
+```
+
+### 4. Create the basic structure
+
+```
+my-website/
+│
+├── public/
+│   ├── images/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       └── script.js
+│
+├── server/
+│   └── server.js
+│
+├── .env
+├── .gitignore
+├── package.json
+└── README.md
+```
+
+For a purely static site, you can even omit Node.js entirely. Node becomes useful when you need a backend/API, form processing, database access, authentication, etc.
+
+### 5. Install Express
+
+```powershell
+npm install express
+```
+
+Express gives Node.js a straightforward HTTP server/API layer.
+
+### 6. Install MongoDB driver
+
+If you want to connect directly to MongoDB:
+
+```powershell
+npm install mongodb
+```
+
+Or use Mongoose:
+
+```powershell
+npm install mongoose
+```
+
+For many beginner projects, **Mongoose** is convenient because it gives you schemas and models.
+
+### 7. Environment variables
+
+Create:
+
+```
+.env
+```
+
+Example:
+
+```env
+MONGODB_URI=your_database_connection_string
+PORT=5000
+```
+
+Never commit `.env`.
+
+Add:
+
+```
+.env
+node_modules/
+```
+
+to:
+
+```
+.gitignore
+```
+
+### 8. Typical dependencies
+
+For a simple Node/MongoDB website:
+
+```bash
+npm install express mongoose dotenv
+```
+
+Development utility:
+
+```bash
+npm install -D nodemon
+```
+
+Then:
+
+```json
+"scripts": {
+  "dev": "nodemon server/server.js",
+  "start": "node server/server.js"
+}
+```
+
+### 9. Start the application
+
+```powershell
+npm run dev
+```
+
+Your backend might run at:
+
+```
+http://localhost:5000
+```
+
+---
+
+# Track 2 — Next.js + React + TypeScript
+
+This is the setup we're using for **AKATASLOPSA UENR**.
+
+Architecture:
+
+```
+                   Next.js
+                      │
+        ┌─────────────┴─────────────┐
+        │                           │
+      React                    Server/API
+        │                           │
+        │                         Prisma
+        │                           │
+        │                       PostgreSQL
+        │
+     Tailwind
+```
+
+For AKATASLOPSA:
+
+```
+Next.js
+React
+TypeScript
+Tailwind CSS
+Prisma
+PostgreSQL
+Paystack
+```
+
+---
+
+## 1. Verify Node.js
+
+```powershell
+node -v
+npm -v
+```
+
+For our current project we have:
+
+```
+Node.js 24.18.0
+npm 11.16.0
+```
+
+---
+
+## 2. Verify Git
+
+```powershell
+git --version
+```
+
+---
+
+## 3. Create the Next.js project
+
+If starting completely from scratch, the easiest method is:
+
+```powershell
+npx create-next-app@latest my-project
+```
+
+During setup, you'll be asked about things such as:
+
+```
+TypeScript?       Yes
+ESLint?           Yes
+Tailwind CSS?     Yes
+src/ directory?   Your choice
+App Router?       Yes
+Turbopack?        Yes
+Import alias?     Yes
+```
+
+Then:
+
+```powershell
+cd my-project
+```
+
+### Important
+
+For an existing project like AKATASLOPSA, **do not run `create-next-app` again**. We initialized the project and installed the dependencies directly.
+
+---
+
+# 4. Core dependencies
+
+A basic Next.js + React + TypeScript project needs:
+
+```
+next
+react
+react-dom
+typescript
+@types/node
+@types/react
+@types/react-dom
+```
+
+If installing manually:
+
+```powershell
+npm install next react react-dom
+```
+
+Then:
+
+```powershell
+npm install -D typescript @types/node @types/react @types/react-dom
+```
+
+---
+
+# 5. Tailwind CSS
+
+For our current project we are using:
+
+```
+Tailwind CSS 3.4.10
+PostCSS
+Autoprefixer
+```
+
+Install:
+
+```powershell
+npm install -D tailwindcss postcss autoprefixer
+```
+
+Then configure Tailwind.
+
+The important lesson from our setup is:
+
+> **Check what is already installed before installing another version.**
+
+We initially encountered dependency conflicts because the project already had packages installed.
+
+---
+
+# 6. Prisma
+
+For a PostgreSQL database:
+
+```powershell
+npm install @prisma/client
+```
+
+Development dependency:
+
+```powershell
+npm install -D prisma
+```
+
+Initialize:
+
+```powershell
+npx prisma init
+```
+
+This creates:
+
+```
+prisma/
+└── schema.prisma
+```
+
+and an environment configuration containing:
+
+```env
+DATABASE_URL="..."
+```
+
+---
+
+# 7. PostgreSQL
+
+You have two main options.
+
+### Local PostgreSQL
+
+Install PostgreSQL on your computer and connect using:
+
+```env
+DATABASE_URL="postgresql://..."
+```
+
+### Hosted PostgreSQL
+
+Use a hosted PostgreSQL provider and place its connection string in:
+
+```env
+DATABASE_URL="..."
+```
+
+You **do not necessarily need `psql` installed locally** if you're using a hosted database.
+
+---
+
+# 8. Prisma database workflow
+
+Once the database connection is configured:
+
+```powershell
+npx prisma generate
+```
+
+Create a migration:
+
+```powershell
+npx prisma migrate dev --name init
+```
+
+Open Prisma Studio:
+
+```powershell
+npx prisma studio
+```
+
+This gives you a visual interface for inspecting the database.
+
+---
+
+# 9. UI utilities
+
+For our AKATASLOPSA project, we're also using Lucide for icons:
+
+```powershell
+npm install lucide-react
+```
+
+This gives us components such as:
+
+```tsx
+import { Menu, Calendar, Users } from "lucide-react";
+```
+
+---
+
+# 10. Environment variables
+
+Typical Next.js environment variables might look like:
+
+```env
+DATABASE_URL="..."
+PAYSTACK_SECRET_KEY="..."
+NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY="..."
+```
+
+The distinction is important:
+
+```
+NEXT_PUBLIC_*
+```
+
+can be exposed to the browser.
+
+Secrets such as:
+
+```
+DATABASE_URL
+PAYSTACK_SECRET_KEY
+```
+
+must remain server-side.
+
+Never commit:
+
+```
+.env
+.env.local
+```
+
+to Git.
+
+---
+
+# 11. Start the application
+
+```powershell
+npm run dev
+```
+
+Next.js normally starts at:
+
+```
+http://localhost:3000
+```
+
+```
+✓ Next.js started
+✓ Turbopack started
+✓ TypeScript detected
+✓ Development server ready
+```
+
+---
+
+# 12. Recommended project structure
+
+For a larger Next.js application like AKATASLOPSA:
+
+```text
+akataslopsa-uenr/
+│
+├── app/
+│   ├── about/
+│   ├── leadership/
+│   ├── events/
+│   ├── news/
+│   ├── gallery/
+│   ├── register/
+│   ├── dues/
+│   ├── contact/
+│   ├── admin/
+│   ├── api/
+│   │
+│   ├── layout.tsx
+│   └── page.tsx
+│
+├── components/
+│   ├── ui/
+│   ├── navbar/
+│   ├── hero/
+│   ├── leadership/
+│   ├── events/
+│   └── gallery/
+│
+├── lib/
+│   ├── prisma.ts
+│   ├── paystack.ts
+│   └── utils.ts
+│
+├── prisma/
+│   └── schema.prisma
+│
+├── public/
+│   ├── images/
+│   └── icons/
+│
+├── types/
+│
+├── .env
+├── .gitignore
+├── next.config.mjs
+├── postcss.config.mjs
+├── tailwind.config.ts
+├── tsconfig.json
+├── package.json
+└── README.md
+```
+
+---
+
+# Quick Comparison
+
+| Area             | HTML/CSS/Node/MongoDB | Next.js/React/TypeScript |
+| ---------------- | --------------------- | ------------------------ |
+| Frontend         | HTML/CSS/JS           | React                    |
+| Framework        | None/Express          | Next.js                  |
+| Language         | JavaScript            | TypeScript               |
+| Styling          | CSS                   | Tailwind/CSS             |
+| Backend          | Node/Express          | Next.js server/API       |
+| Database         | MongoDB               | PostgreSQL               |
+| ORM/ODM          | Mongoose              | Prisma                   |
+| Routing          | Manual/Express        | Next.js App Router       |
+| SEO              | Manual                | Built-in capabilities    |
+| API              | Express               | Next.js Route Handlers   |
+| Server rendering | Manual                | Built-in                 |
+| Authentication   | Build/integrate       | Build/integrate          |
+| Deployment       | Node hosting          | Vercel/Node hosting      |
+| Complexity       | Lower                 | Higher                   |
+| Suitable for     | Simple sites/apps     | Full applications        |
+
+## The two setup recipes
+
+### A. Simple website
+
+```bash
+npm init -y
+npm install express mongoose dotenv
+npm install -D nodemon
+```
+
+Then:
+
+```text
+HTML
+CSS
+JavaScript
+     ↓
+Node.js + Express
+     ↓
+MongoDB
+```
+
+### B. Modern full-stack application
+
+```bash
+npx create-next-app@latest my-project
+```
+
+Or, for an existing project:
+
+```bash
+npm install next react react-dom
+npm install -D typescript @types/node @types/react @types/react-dom
+npm install -D tailwindcss postcss autoprefixer
+npm install @prisma/client
+npm install -D prisma
+npm install lucide-react
+```
+
+Then:
+
+```bash
+npx prisma init
+npm run dev
+```
+
+And the resulting architecture is:
+
+```text
+             ┌─────────────────────┐
+             │       Browser       │
+             └──────────┬──────────┘
+                        │
+                        ▼
+             ┌─────────────────────┐
+             │      Next.js        │
+             │                     │
+             │ React + TypeScript  │
+             │      + Tailwind     │
+             └──────────┬──────────┘
+                        │
+              ┌─────────┴─────────┐
+              ▼                   ▼
+        ┌───────────┐       ┌───────────┐
+        │  Prisma   │       │ Paystack  │
+        └─────┬─────┘       └───────────┘
+              │
+              ▼
+        ┌───────────┐
+        │ PostgreSQL│
+        └───────────┘
+
+
